@@ -1,210 +1,241 @@
 # Docker Setup for Sales Tracker
 
-This project has been containerized with Docker for easy development and deployment.
+This document provides instructions for running the Sales Tracker Laravel + Vue.js application using Docker.
 
 ## Prerequisites
 
-- Docker Desktop installed and running
-- Docker Compose (usually included with Docker Desktop)
+- Docker Desktop (Windows/Mac) or Docker Engine (Linux)
+- Docker Compose
 
 ## Quick Start
 
 ### Option 1: Automated Setup (Recommended)
 
-**For Linux/macOS:**
+Run the setup script to automatically configure everything:
+
 ```bash
 chmod +x docker-setup.sh
 ./docker-setup.sh
 ```
 
-**For Windows PowerShell:**
-```powershell
-.\docker-setup.ps1
-```
-
 ### Option 2: Manual Setup
 
-1. **Create environment file:**
+1. **Copy environment file:**
    ```bash
-   cp .env.example .env
+   cp docker/env.example .env
    ```
 
-2. **Update .env for Docker:**
-   - Change `DB_HOST=127.0.0.1` to `DB_HOST=db`
-   - Change `REDIS_HOST=127.0.0.1` to `REDIS_HOST=redis`
-
-3. **Build and start containers:**
+2. **Build and start containers:**
    ```bash
    docker-compose up -d --build
    ```
 
-4. **Run Laravel setup:**
+3. **Install dependencies:**
+   ```bash
+   # PHP dependencies
+   docker-compose exec app composer install
+   
+   # Node.js dependencies
+   docker-compose exec node npm install
+   ```
+
+4. **Generate application key:**
    ```bash
    docker-compose exec app php artisan key:generate
-   docker-compose exec app php artisan migrate --force
-   docker-compose exec app php artisan storage:link
+   ```
+
+5. **Run database migrations:**
+   ```bash
+   docker-compose exec app php artisan migrate
+   ```
+
+6. **Build frontend assets:**
+   ```bash
+   docker-compose exec node npm run build
    ```
 
 ## Services
 
 The Docker setup includes the following services:
 
-- **app** (PHP 8.2 + Laravel): Main application container
-- **nginx**: Web server (port 8000)
-- **db** (MySQL 8.0): Database (port 3306)
-- **redis**: Cache and session storage (port 6379)
-- **node**: Vite development server (port 5173)
+- **app** (PHP-FPM 8.2): Laravel application backend
+- **webserver** (Nginx): Web server for serving the application
+- **db** (MySQL 8.0): Database server
+- **redis** (Redis Alpine): Cache and session storage
+- **node** (Node.js 18): Frontend build process
 
-## Access Points
+## Ports
 
-- **Application**: http://localhost:8000
-- **Vite Dev Server**: http://localhost:5173
-- **Database**: localhost:3306
-- **Redis**: localhost:6379
+- **8000**: Web application (http://localhost:8000)
+- **3306**: MySQL database
+- **6379**: Redis cache
+- **5173**: Vite development server (internal)
 
-## Useful Commands
+## Environment Configuration
 
-### Container Management
-```bash
-# Start all services
-docker-compose up -d
+The Docker environment is configured in `docker/env.example`. Key settings:
 
-# Stop all services
-docker-compose down
-
-# View logs
-docker-compose logs -f app
-docker-compose logs -f nginx
-docker-compose logs -f db
-
-# Rebuild containers
-docker-compose up -d --build
-```
-
-### Laravel Commands
-```bash
-# Access app container
-docker-compose exec app bash
-
-# Run artisan commands
-docker-compose exec app php artisan migrate
-docker-compose exec app php artisan make:controller ExampleController
-docker-compose exec app php artisan tinker
-
-# Run tests
-docker-compose exec app php artisan test
-```
-
-### Node.js Commands
-```bash
-# Access node container
-docker-compose exec node sh
-
-# Install new npm packages
-docker-compose exec node npm install package-name
-
-# Build assets
-docker-compose exec node npm run build
-```
-
-### Database Commands
-```bash
-# Access MySQL
-docker-compose exec db mysql -u root -p
-
-# Import database dump
-docker-compose exec -T db mysql -u root -p database_name < dump.sql
-
-# Export database
-docker-compose exec db mysqldump -u root -p database_name > dump.sql
-```
+- Database host: `db` (Docker service name)
+- Redis host: `redis` (Docker service name)
+- App URL: `http://localhost:8000`
 
 ## Development Workflow
 
-1. **Start development environment:**
+### Starting the application:
+```bash
+docker-compose up -d
+```
+
+### Stopping the application:
+```bash
+docker-compose down
+```
+
+### Viewing logs:
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f app
+docker-compose logs -f webserver
+docker-compose logs -f node
+```
+
+### Running Artisan commands:
+```bash
+docker-compose exec app php artisan [command]
+```
+
+### Running npm commands:
+```bash
+docker-compose exec node npm [command]
+```
+
+### Accessing containers:
+```bash
+# PHP container
+docker-compose exec app bash
+
+# Node container
+docker-compose exec node sh
+
+# Database container
+docker-compose exec db mysql -u sales_tracker -p sales_tracker
+```
+
+## Frontend Development
+
+For frontend development with hot reloading:
+
+1. **Start the development server:**
    ```bash
-   docker-compose up -d
+   docker-compose exec node npm run dev
    ```
 
-2. **Make code changes** - files are mounted as volumes, so changes are reflected immediately
+2. **Access the Vite dev server:**
+   The Vite development server runs inside the container and is accessible through the Nginx proxy.
 
-3. **For frontend changes** - Vite will hot-reload automatically
+## Database Management
 
-4. **For backend changes** - PHP-FPM will serve updated files immediately
+### Accessing MySQL:
+```bash
+docker-compose exec db mysql -u sales_tracker -p sales_tracker
+```
 
-5. **Database changes** - run migrations as needed:
+### Running migrations:
+```bash
+docker-compose exec app php artisan migrate
+```
+
+### Seeding the database:
+```bash
+docker-compose exec app php artisan db:seed
+```
+
+### Resetting the database:
+```bash
+docker-compose exec app php artisan migrate:fresh --seed
+```
+
+## Troubleshooting
+
+### Container won't start:
+1. Check if ports are already in use:
    ```bash
-   docker-compose exec app php artisan migrate
+   netstat -tulpn | grep :8000
+   ```
+
+2. Check Docker logs:
+   ```bash
+   docker-compose logs [service-name]
+   ```
+
+### Permission issues:
+If you encounter permission issues with file ownership:
+
+```bash
+# Fix ownership
+sudo chown -R $USER:$USER .
+
+# Fix permissions
+chmod -R 755 storage bootstrap/cache
+```
+
+### Database connection issues:
+1. Ensure the database container is running:
+   ```bash
+   docker-compose ps
+   ```
+
+2. Check database logs:
+   ```bash
+   docker-compose logs db
+   ```
+
+3. Verify environment variables in `.env`
+
+### Frontend build issues:
+1. Clear node_modules and reinstall:
+   ```bash
+   docker-compose exec node rm -rf node_modules package-lock.json
+   docker-compose exec node npm install
+   ```
+
+2. Clear Vite cache:
+   ```bash
+   docker-compose exec node npm run build
    ```
 
 ## Production Considerations
 
 For production deployment:
 
-1. **Update environment variables** in `.env`:
-   - Set `APP_ENV=production`
-   - Set `APP_DEBUG=false`
-   - Configure production database credentials
-   - Set secure `APP_KEY`
+1. Update environment variables for production
+2. Use production-optimized Docker images
+3. Configure proper SSL certificates
+4. Set up proper backup strategies
+5. Configure monitoring and logging
+6. Use Docker secrets for sensitive data
 
-2. **Build production assets:**
-   ```bash
-   docker-compose exec node npm run build
-   ```
+## Useful Commands
 
-3. **Optimize Laravel:**
-   ```bash
-   docker-compose exec app php artisan config:cache
-   docker-compose exec app php artisan route:cache
-   docker-compose exec app php artisan view:cache
-   ```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port conflicts**: If ports 8000, 3306, 6379, or 5173 are in use, modify the ports in `docker-compose.yml`
-
-2. **Permission issues**: Ensure Docker has proper permissions to access the project directory
-
-3. **Database connection**: Wait for MySQL to fully start (usually 30-60 seconds) before running migrations
-
-4. **Memory issues**: Increase Docker memory allocation in Docker Desktop settings
-
-### Reset Everything
 ```bash
-# Stop and remove all containers, networks, and volumes
-docker-compose down -v
+# Rebuild containers after Dockerfile changes
+docker-compose build --no-cache
 
-# Remove all images
-docker-compose down --rmi all
+# Restart a specific service
+docker-compose restart app
 
-# Start fresh
-docker-compose up -d --build
-```
+# View resource usage
+docker stats
 
-## File Structure
+# Clean up unused resources
+docker system prune
 
-```
-docker/
-├── nginx/
-│   └── conf.d/
-│       └── app.conf          # Nginx configuration
-├── php/
-│   └── local.ini            # PHP configuration
-├── mysql/
-│   └── my.cnf               # MySQL configuration
-└── supervisor/
-    └── supervisord.conf     # Process management
-```
+# Backup database
+docker-compose exec db mysqldump -u sales_tracker -p sales_tracker > backup.sql
 
-## Environment Variables
-
-Key environment variables for Docker:
-
-- `DB_HOST=db` - Database host (Docker service name)
-- `REDIS_HOST=redis` - Redis host (Docker service name)
-- `APP_URL=http://localhost:8000` - Application URL
-- `QUEUE_CONNECTION=redis` - Queue driver
-- `SESSION_DRIVER=redis` - Session driver
-- `CACHE_DRIVER=redis` - Cache driver 
+# Restore database
+docker-compose exec -T db mysql -u sales_tracker -p sales_tracker < backup.sql
+``` 

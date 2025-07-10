@@ -1,88 +1,78 @@
 services:
-  # PHP Service
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sales-tracker-app
+    container_name: laravel_app
     restart: unless-stopped
     working_dir: /var/www
     volumes:
       - ./:/var/www
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
-      - storage_data:/var/www/storage
     networks:
-      - sales-tracker-network
+      - laravel
+    depends_on:
+      - db
+      - redis
 
-  # Nginx Service
-  nginx:
+  webserver:
     image: nginx:alpine
-    container_name: sales-tracker-nginx
+    container_name: laravel_webserver
     restart: unless-stopped
     ports:
-      - "8000:80"
+      - "8080:80"
     volumes:
       - ./:/var/www
       - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
     networks:
-      - sales-tracker-network
+      - laravel
     depends_on:
       - app
 
-  # MySQL Service
   db:
     image: mysql:8.0
-    container_name: sales-tracker-db
+    container_name: laravel_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-sales-tracker}
-      MYSQL_ROOT_HOST: '%'
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
+      MYSQL_DATABASE: sales-tracker
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: laravel
+      MYSQL_USER: laravel
+    volumes:
+      - dbdata:/var/lib/mysql
     ports:
       - "3306:3306"
-    volumes:
-      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
-      - dbdata:/var/lib/mysql
     networks:
-      - sales-tracker-network
+      - laravel
 
-  # Redis Service
   redis:
     image: redis:alpine
-    container_name: sales-tracker-redis
+    container_name: laravel_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     networks:
-      - sales-tracker-network
+      - laravel
 
-  # Node.js Service for development
+  # This is the key for hot reloading with Vue/React
   node:
     image: node:18-alpine
-    container_name: sales-tracker-node
+    container_name: laravel_node
     restart: unless-stopped
     working_dir: /var/www
     volumes:
       - ./:/var/www
-      - /var/www/node_modules
     ports:
-      - "5173:5173"
-    command: npm run dev
+      - "5173:5173"  # Vite dev server
+      - "3000:3000"  # Alternative port
+    command: sh -c "npm install && npm run dev"
     networks:
-      - sales-tracker-network
-    depends_on:
-      - app
+      - laravel
 
-# Docker Networks
 networks:
-  sales-tracker-network:
+  laravel:
     driver: bridge
 
-# Volumes
 volumes:
   dbdata:
     driver: local
-  storage_data:
-    driver: local 

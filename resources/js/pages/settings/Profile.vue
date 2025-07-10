@@ -18,7 +18,7 @@ interface Props {
 
 defineProps<Props>();
 
-const breadcrumbItems: BreadcrumbItem[] = [
+const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Profile settings',
         href: '/settings/profile',
@@ -41,7 +41,7 @@ const submit = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
+    <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Profile settings" />
 
         <SettingsLayout>

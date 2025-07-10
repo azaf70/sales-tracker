@@ -17,7 +17,7 @@ declare module '@inertiajs/core' {
     interface PageProps extends InertiaPageProps, AppPageProps {}
 }
 
-declare module 'vue' {
+declare module '@vue/runtime-core' {
     interface ComponentCustomProperties {
         $inertia: typeof Router;
         $page: Page;
