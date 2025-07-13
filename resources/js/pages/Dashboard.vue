@@ -113,8 +113,8 @@ const quickActions = [
       <Card>
         <CardContent class="p-4">
           <div class="text-center">
-            <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Activity class="h-8 w-8" />
+            <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
+              <Activity class="h-3 w-8" />
             </div>
             <h1 class="text-xl font-bold mb-2">Welcome back! 👋</h1>
             <p class="text-muted-foreground text-sm leading-relaxed">
@@ -125,7 +125,7 @@ const quickActions = [
       </Card>
 
       <!-- Stats Grid -->
-      <div class="grid grid-cols-1 gap-3">
+      <div class="grid grid-cols-2 gap-3">
         <Card 
           v-for="(stat, index) in stats" 
           :key="stat.title"
