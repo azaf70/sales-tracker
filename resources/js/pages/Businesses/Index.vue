@@ -3,11 +3,12 @@ import { ref, onMounted, computed } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3';
 import { Head } from '@inertiajs/vue3';
 import { Building2, Users, Plus, ChevronRight, Crown, Search, Filter, TrendingUp, DollarSign } from 'lucide-vue-next';
-import AppMobileLayout from '@/layouts/app/AppMobileLayout.vue';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import AppMobileLayout from '@/layouts/app/AppMobileLayout.vue'
 
 interface Business {
     id: number;
@@ -40,7 +41,7 @@ onMounted(() => {
   }, 100)
 })
 
-const formatGBP = (amount: number) => {
+const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
         style: 'currency',
         currency: 'GBP',
@@ -65,166 +66,112 @@ const filteredBusinesses = computed(() => {
 </script>
 
 <template>
-    <Head title="My Businesses" />
-    <AppMobileLayout>
-        <!-- Header Section -->
-        <div class="space-y-6">
-            <!-- Stats Overview -->
-            <div class="grid grid-cols-2 gap-4">
-                <Card class="bg-gradient-to-br from-blue-500 to-purple-600 border-0 shadow-xl text-white">
-                    <CardContent class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-blue-100 text-sm">Total Revenue</p>
-                                <p class="text-2xl font-bold">{{ formatGBP(businessStats.totalRevenue) }}</p>
-                            </div>
-                            <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                                <DollarSign class="h-5 w-5" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card class="bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-xl text-white">
-                    <CardContent class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-green-100 text-sm">Total Profit</p>
-                                <p class="text-2xl font-bold">{{ formatGBP(businessStats.totalProfit) }}</p>
-                            </div>
-                            <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                                <TrendingUp class="h-5 w-5" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <!-- Search and Filter -->
-            <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardContent class="p-4">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-1 relative">
-                            <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input
-                                v-model="searchQuery"
-                                placeholder="Search businesses..."
-                                class="pl-10 bg-white/50 backdrop-blur-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                            />
-                        </div>
-                        <Button variant="outline" size="sm" class="border-gray-200 text-gray-700">
-                            <Filter class="h-4 w-4 mr-2" />
-                            Filter
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <!-- Empty State -->
-            <Card v-if="filteredBusinesses.length === 0" class="bg-white/80 backdrop-blur-sm border-0 shadow-xl text-center py-12">
-                <CardContent>
-                    <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                        <Building2 class="w-10 h-10 text-white" />
-                    </div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-2">No businesses found</h2>
-                    <p class="text-gray-600 mb-8">
-                        {{ searchQuery ? 'Try adjusting your search terms.' : 'Create your first business to start tracking investments and profits.' }}
-                    </p>
-                    <Button as-child class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
-                        <Link :href="route('businesses.create')">
-                            <Plus class="w-4 h-4 mr-2" />
-                            Create Business
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
-
-            <!-- Business List -->
-            <div v-else class="space-y-4">
-                <Card 
-                    v-for="(business, index) in filteredBusinesses" 
-                    :key="business.id" 
-                    class="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                    :style="{ animationDelay: `${index * 100}ms` }"
-                >
-                    <Link :href="route('businesses.show', business.id)" class="block">
-                        <CardContent class="p-6">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center space-x-2 mb-2">
-                                        <h3 class="text-xl font-bold text-gray-900 truncate">
-                                            {{ business.name }}
-                                        </h3>
-                                        <Badge 
-                                            v-if="business.created_by === page.props.auth.user.id" 
-                                            variant="secondary"
-                                            class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white"
-                                        >
-                                            <Crown class="w-3 h-3 mr-1" />
-                                            Owner
-                                        </Badge>
-                                    </div>
-                                    <p v-if="business.description" class="text-gray-600 text-sm leading-relaxed line-clamp-2">
-                                        {{ business.description }}
-                                    </p>
-                                </div>
-                                <ChevronRight class="w-5 h-5 text-gray-400 ml-3 flex-shrink-0" />
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                                    <div class="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
-                                        <Building2 class="w-4 h-4 text-white" />
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500">Created by</p>
-                                        <p class="text-sm font-semibold text-gray-900">{{ business.creator.name }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                                    <div class="p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600">
-                                        <Users class="w-4 h-4 text-white" />
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500">Members</p>
-                                        <p class="text-sm font-semibold text-gray-900">{{ business.members.length }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                                <div class="text-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                                    <p class="text-xs text-gray-500 mb-1">Total Revenue</p>
-                                    <p class="text-lg font-bold text-green-600">{{ formatGBP(0) }}</p>
-                                </div>
-                                <div class="text-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-                                    <p class="text-xs text-gray-500 mb-1">Total Profit</p>
-                                    <p class="text-lg font-bold text-purple-600">{{ formatGBP(0) }}</p>
-                                </div>
-                            </div>
-                        </CardContent>
+  <AppMobileLayout>
+    <div class="space-y-4 p-4">
+        <Card v-if="filteredBusinesses.length === 0" class="text-center py-12">
+            <CardContent>
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+                    <Building2 class="w-10 h-10" />
+                </div>
+                <h2 class="text-xl font-bold mb-2">No businesses found</h2>
+                <p class="text-muted-foreground mb-8">
+                    {{ searchQuery ? 'Try adjusting your search terms.' : 'Create your first business to start tracking investments and profits.' }}
+                </p>
+                <Button as-child>
+                    <Link :href="route('businesses.create')">
+                        <Plus class="w-4 h-4 mr-2" />
+                        Create Business
                     </Link>
-                </Card>
-            </div>
+                </Button>
+            </CardContent>
+        </Card>
 
-            <!-- Create Business CTA -->
-            <Card v-if="filteredBusinesses.length > 0" class="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 border-0 shadow-xl">
-                <CardContent class="p-6 text-center text-white">
-                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <Plus class="w-8 h-8" />
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Ready to grow?</h3>
-                    <p class="text-blue-100 mb-6">Create another business to expand your portfolio</p>
-                    <Button as-child variant="secondary" class="bg-white text-blue-600 hover:bg-gray-100">
-                        <Link :href="route('businesses.create')">
-                            <Plus class="w-4 h-4 mr-2" />
-                            Create New Business
-                        </Link>
-                    </Button>
-                </CardContent>
+        <!-- Business List -->
+        <div v-else class="space-y-4">
+            <Card 
+                v-for="(business, index) in filteredBusinesses" 
+                :key="business.id" 
+                class="hover:shadow-md transition-all duration-300"
+            >
+                <Link :href="route('businesses.show', business.id)" class="block">
+                    <CardContent class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <h3 class="text-xl font-bold truncate">
+                                        {{ business.name }}
+                                    </h3>
+                                    <Badge 
+                                        v-if="business.created_by === page.props.auth.user.id" 
+                                        variant="secondary"
+                                    >
+                                        <Crown class="w-3 h-3 mr-1" />
+                                        Owner
+                                    </Badge>
+                                </div>
+                                <p v-if="business.description" class="text-muted-foreground text-sm leading-relaxed line-clamp-2">
+                                    {{ business.description }}
+                                </p>
+                            </div>
+                            <ChevronRight class="w-5 h-5 text-muted-foreground ml-3 flex-shrink-0" />
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="flex items-center space-x-3 p-3 bg-muted rounded-xl">
+                                <div class="p-2 rounded-lg bg-primary">
+                                    <Building2 class="w-4 h-4 text-primary-foreground" />
+                                </div>
+                                <div>
+                                    <p class="text-xs text-muted-foreground">Created by</p>
+                                    <p class="text-sm font-semibold">{{ business.creator.name }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-muted rounded-xl">
+                                <div class="p-2 rounded-lg bg-primary">
+                                    <Users class="w-4 h-4 text-primary-foreground" />
+                                </div>
+                                <div>
+                                    <p class="text-xs text-muted-foreground">Members</p>
+                                    <p class="text-sm font-semibold">{{ business.members.length }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <Separator class="mb-4" />
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-3 bg-muted rounded-xl">
+                                <p class="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                                <p class="text-lg font-bold text-green-600">{{ formatCurrency(0) }}</p>
+                            </div>
+                            <div class="text-center p-3 bg-muted rounded-xl">
+                                <p class="text-xs text-muted-foreground mb-1">Total Profit</p>
+                                <p class="text-lg font-bold text-blue-600">{{ formatCurrency(0) }}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Link>
             </Card>
         </div>
-    </AppMobileLayout>
+
+        <!-- Create Business CTA -->
+        <Card v-if="filteredBusinesses.length > 0" class="bg-primary text-primary-foreground">
+            <CardContent class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+                    <Plus class="w-8 h-8" />
+                </div>
+                <h3 class="text-xl font-bold mb-2">Ready to grow?</h3>
+                <p class="text-primary-foreground/80 mb-6">Create another business to expand your portfolio</p>
+                <Button as-child variant="secondary" class="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+                    <Link :href="route('businesses.create')">
+                        <Plus class="w-4 h-4 mr-2" />
+                        Create New Business
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
+    </div>
+  </AppMobileLayout>
 </template>
 
 <style scoped>
@@ -233,36 +180,6 @@ const filteredBusinesses = computed(() => {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-}
-
-/* Custom animations */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* Apply animations to cards */
-.card-animate {
-  animation: slideInUp 0.6s ease-out forwards;
-}
-
-.fade-in {
-  animation: fadeIn 0.8s ease-out forwards;
 }
 
 /* Smooth transitions */

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('product_batch_id')->nullable()->constrained('product_batches')->onDelete('set null');
             $table->decimal('amount', 15, 2); // UK Pounds (£)
+            $table->decimal('share_percentage', 5, 2)->default(0); // e.g. 25.50 for 25.5%
             $table->date('invested_at');
             $table->timestamps();
         });

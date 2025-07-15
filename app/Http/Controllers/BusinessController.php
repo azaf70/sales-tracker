@@ -64,7 +64,14 @@ class BusinessController extends Controller
 
     public function show(Business $business): Response
     {
-        $business->load(['creator', 'members.user', 'productBatches', 'investments.user', 'sales']);
+        $business->load([
+            'creator', 
+            'members.user', 
+            'productBatches', 
+            'investments.user', 
+            'investments.productBatch',
+            'sales.productBatch'
+        ]);
 
         // Calculate total investments
         $totalInvestments = $business->investments->sum('amount');

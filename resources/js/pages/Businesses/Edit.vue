@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,9 +11,17 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Slash, ArrowLeft, Building2, Loader2, Sparkles } from 'lucide-vue-next'
 import AppMobileLayout from '@/layouts/app/AppMobileLayout.vue'
 
+const page = usePage()
+const props = defineProps({
+  business: {
+    type: Object,
+    required: true
+  }
+})
+
 const form = useForm({
-  name: '',
-  description: '',
+  name: props.business.name || '',
+  description: props.business.description || '',
 })
 
 const isLoaded = ref(false)
@@ -25,14 +33,14 @@ onMounted(() => {
 })
 
 const submit = () => {
-  form.post(route('businesses.store'))
+  form.put(route('businesses.update', props.business.id))
 }
 
 const handleCancel = () => {
   if (window.history.length > 1) {
     window.history.back();
   } else {
-    window.location.href = route('businesses.index');
+    window.location.href = route('businesses.show', props.business.id);
   }
 }
 </script>
@@ -51,7 +59,7 @@ const handleCancel = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator><Slash /></BreadcrumbSeparator>
           <BreadcrumbItem>
-            <BreadcrumbLink href="#">Create</BreadcrumbLink>
+            <BreadcrumbLink href="#">Edit</BreadcrumbLink>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -59,9 +67,9 @@ const handleCancel = () => {
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <Building2 class="h-5 w-5" />
-            Create Business
+            Edit Business
           </CardTitle>
-          <CardDescription>Start tracking your family investment journey</CardDescription>
+          <CardDescription>Update your business details</CardDescription>
         </CardHeader>
         <CardContent>
           <form @submit.prevent="submit" class="space-y-4">
@@ -105,7 +113,7 @@ const handleCancel = () => {
           >
             <Loader2 v-if="form.processing" class="h-4 w-4 animate-spin mr-2" />
             <Sparkles v-else class="h-4 w-4 mr-2" />
-            {{ form.processing ? 'Creating...' : 'Create Business' }}
+            {{ form.processing ? 'Saving...' : 'Save Changes' }}
           </Button>
         </CardFooter>
       </Card>
@@ -117,10 +125,10 @@ const handleCancel = () => {
         <CardHeader class="mb-2">
           <CardTitle class="flex items-center gap-2">
             <Target class="h-5 w-5" />
-            Why Create a Business?
+            Why Manage a Business?
           </CardTitle>
           <CardDescription>
-            Track your family's financial growth and success with comprehensive investment management
+            Keep your family's financial growth and success up to date
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
@@ -133,7 +141,6 @@ const handleCancel = () => {
               <p class="text-sm text-muted-foreground">Create and track product batches with detailed cost and quantity management</p>
             </div>
           </div>
-          
           <div class="flex items-start space-x-3">
             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
               <DollarSign class="h-4 w-4 text-primary" />
@@ -143,7 +150,6 @@ const handleCancel = () => {
               <p class="text-sm text-muted-foreground">Record individual investments and calculate profit shares automatically</p>
             </div>
           </div>
-          
           <div class="flex items-start space-x-3">
             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
               <TrendingUp class="h-4 w-4 text-primary" />
@@ -153,7 +159,6 @@ const handleCancel = () => {
               <p class="text-sm text-muted-foreground">Track sales, calculate profits, and monitor performance metrics</p>
             </div>
           </div>
-          
           <div class="flex items-start space-x-3">
             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
               <Users class="h-4 w-4 text-primary" />
@@ -176,7 +181,7 @@ const handleCancel = () => {
             What's Next?
           </CardTitle>
           <CardDescription>
-            After creating your business, you can:
+            After updating your business, you can:
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-3">
@@ -187,7 +192,6 @@ const handleCancel = () => {
               <p class="text-xs text-muted-foreground">Add products with costs and quantities to track inventory</p>
             </div>
           </div>
-          
           <div class="flex items-start space-x-3 p-3 rounded-lg border bg-muted/50">
             <div class="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
             <div>
@@ -195,7 +199,6 @@ const handleCancel = () => {
               <p class="text-xs text-muted-foreground">Add family investments with automatic share calculations</p>
             </div>
           </div>
-          
           <div class="flex items-start space-x-3 p-3 rounded-lg border bg-muted/50">
             <div class="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
             <div>
@@ -203,7 +206,6 @@ const handleCancel = () => {
               <p class="text-xs text-muted-foreground">Record sales transactions and monitor revenue growth</p>
             </div>
           </div>
-          
           <div class="flex items-start space-x-3 p-3 rounded-lg border bg-muted/50">
             <div class="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
             <div>
@@ -251,51 +253,5 @@ const handleCancel = () => {
 /* Smooth transitions */
 * {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Hover effects */
-.hover-lift {
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }
 </style> 

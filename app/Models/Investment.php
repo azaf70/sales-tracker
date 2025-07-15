@@ -17,11 +17,13 @@ class Investment extends Model
         'user_id',
         'product_batch_id',
         'amount',
+        'share_percentage',
         'invested_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2', // UK Pounds (£)
+        'share_percentage' => 'decimal:2',
         'invested_at' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -40,5 +42,29 @@ class Investment extends Model
     public function productBatch(): BelongsTo
     {
         return $this->belongsTo(ProductBatch::class);
+    }
+
+    public function getProfitShareAttribute(): float
+    {
+        if (!$this->productBatch) {
+            return 0;
+        }
+
+        $totalProfit = $this->productBatch->total_profit;
+        return ($totalProfit * $this->share_percentage) / 100;
+    }
+
+    public function getCalculatedSharePercentageAttribute(): float
+    {
+        if (!$this->productBatch) {
+            return 0;
+        }
+
+        $totalInvestment = $this->productBatch->investments->sum('amount');
+        if ($totalInvestment <= 0) {
+            return 0;
+        }
+
+        return ($this->amount / $totalInvestment) * 100;
     }
 }

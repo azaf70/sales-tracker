@@ -30,6 +30,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Product Batches
     Route::resource('businesses.product-batches', ProductBatchController::class)
         ->shallow();
+    Route::post('businesses/{business}/product-batches/{productBatch}/complete', [ProductBatchController::class, 'complete'])
+        ->name('businesses.product-batches.complete');
+    Route::post('businesses/{business}/product-batches/{productBatch}/calculate-shares', [ProductBatchController::class, 'calculateShares'])
+        ->name('businesses.product-batches.calculate-shares');
     
     // Investments
     Route::resource('businesses.investments', InvestmentController::class)

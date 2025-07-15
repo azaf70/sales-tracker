@@ -17,6 +17,8 @@ return new class extends Migration
             $table->date('purchase_date');
             $table->decimal('total_cost', 15, 2); // UK Pounds (£)
             $table->integer('total_quantity');
+            $table->enum('status', ['active', 'completed', 'cancelled'])->default('active');
+            $table->date('completion_date')->nullable();
             $table->timestamps();
         });
     }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Link, useForm, usePage, router } from '@inertiajs/vue3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,9 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import AppMobileLayout from '@/layouts/app/AppMobileLayout.vue'
-import { Plus, Users, TrendingUp, PoundSterling, UserPlus, Trash2, X, ChevronRight, Building2, DollarSign, Target, ArrowUpRight, ArrowDownRight } from 'lucide-vue-next'
+import { Plus, Users, TrendingUp, PoundSterling, UserPlus, Trash2, X, ChevronRight, Building2, DollarSign, Target, ArrowUpRight, ArrowDownRight, Package, ShoppingCart, BarChart3 } from 'lucide-vue-next'
+import { useUiStore } from '@/stores/ui'
+import { formatDate, formatDateTime } from '@/lib/date-utils'
 
 interface Props {
   business: {
@@ -28,6 +30,42 @@ interface Props {
         name: string
         email: string
       }
+    }>
+    product_batches?: Array<{
+      id: number
+      name: string
+      status: string
+      total_quantity: number
+      remaining_quantity: number
+      total_cost: number
+      total_revenue: number
+      total_profit: number
+      purchase_date: string
+      completion_date?: string
+    }>
+    investments?: Array<{
+      id: number
+      user: {
+        id: number
+        name: string
+      }
+      product_batch?: {
+        id: number
+        name: string
+      }
+      amount: number
+      share_percentage: number
+      invested_at: string
+    }>
+    sales?: Array<{
+      id: number
+      product_batch: {
+        id: number
+        name: string
+      }
+      quantity: number
+      sale_price: number
+      sold_at: string
     }>
   }
   totalInvestments: number
@@ -48,8 +86,22 @@ const page = usePage()
 const showInviteForm = ref(false)
 const showRemoveDialog = ref(false)
 const memberToRemove = ref<any>(null)
-const activeTab = ref('overview')
+const tabs = [
+  { value: 'overview', label: 'Overview', icon: BarChart3 },
+  { value: 'batches', label: 'Batches', icon: Package },
+  { value: 'investments', label: 'Investments', icon: DollarSign },
+  { value: 'sales', label: 'Sales', icon: TrendingUp },
+  { value: 'members', label: 'Members', icon: Users },
+]
 const isLoaded = ref(false)
+
+const ui = useUiStore()
+const businessId = props.business.id
+const activeTab = ref(ui.getBusinessTab(businessId))
+
+watch(activeTab, (tab) => {
+  ui.setBusinessTab(businessId, tab)
+})
 
 const inviteForm = useForm({
   email: '',
@@ -62,6 +114,8 @@ const formatCurrency = (amount: number) => {
     currency: 'GBP',
   }).format(amount)
 }
+
+// Using formatDate from date-utils
 
 const isOwner = computed(() => props.business.created_by === page.props.auth.user.id)
 
@@ -91,6 +145,8 @@ const confirmRemoveMember = () => {
 }
 
 onMounted(() => {
+  // Restore tab from store if available
+  activeTab.value = ui.getBusinessTab(businessId)
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
@@ -99,102 +155,86 @@ onMounted(() => {
 
 <template>
   <AppMobileLayout>
-    <!-- Hero Header with Glassmorphism -->
-    <div class="relative overflow-hidden">
-      <!-- Background Gradient -->
-      <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800"></div>
-      
-      <!-- Animated Background Elements -->
-      <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-10 right-10 w-24 h-24 bg-cyan-400 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div class="absolute top-1/2 left-1/2 w-40 h-40 bg-purple-400 rounded-full blur-3xl animate-pulse delay-500"></div>
-      </div>
-
-      <!-- Content -->
-      <div class="relative z-10 px-6 py-8">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex-1 min-w-0">
-            <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">
-              {{ business.name }}
-            </h1>
-            <p v-if="business.description" class="text-blue-100 text-lg leading-relaxed">
-              {{ business.description }}
-            </p>
-          </div>
-          <div class="flex items-center space-x-3 ml-4">
-            <Link
-              v-if="isOwner"
-              :href="route('businesses.edit', business.id)"
-              as="button"
-            >
-              <Button variant="secondary" size="sm" class="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30">
-                Edit
-              </Button>
-            </Link>
-            <Link :href="route('businesses.index')" as="button">
-              <Button variant="ghost" size="sm" class="text-white hover:bg-white/20">
-                <X class="h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
+    <div class="space-y-6 p-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex-1 min-w-0">
+          <h1 class="text-xl font-bold tracking-tight">{{ business.name }}</h1>
+          <p v-if="business.description" class="text-sm text-muted-foreground">
+            {{ business.description }}
+          </p>
         </div>
-
-        <!-- Quick Stats -->
-        <div class="grid grid-cols-3 gap-4">
-          <div class="text-center">
-            <div class="text-2xl font-bold text-white">{{ business.members.length }}</div>
-            <div class="text-blue-100 text-sm">Members</div>
-          </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-white">{{ formatCurrency(totalProfit) }}</div>
-            <div class="text-blue-100 text-sm">Profit</div>
-          </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-white">{{ formatCurrency(totalRevenue) }}</div>
-            <div class="text-blue-100 text-sm">Revenue</div>
-          </div>
+        <div class="flex items-center space-x-3 ml-4">
+          <Link
+            v-if="isOwner"
+            :href="route('businesses.edit', business.id)"
+            as="button"
+          >
+            <Button variant="outline" size="sm">
+              Edit
+            </Button>
+          </Link>
+          <Link :href="route('businesses.index')" as="button">
+            <Button variant="ghost" size="sm">
+              <X class="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
-    </div>
 
-    <!-- Tab Navigation -->
-    <div class="px-6 -mt-4 relative z-20">
-      <Tabs v-model="activeTab" class="w-full">
-        <TabsList class="grid w-full grid-cols-3 bg-white/10 backdrop-blur-sm border border-white/20">
-          <TabsTrigger 
-            value="overview" 
-            class="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300"
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl font-bold">{{ business.members.length }}</div>
+            <div class="text-sm text-muted-foreground">Members</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl font-bold">{{ formatCurrency(totalProfit) }}</div>
+            <div class="text-sm text-muted-foreground">Profit</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent class="p-4 text-center">
+            <div class="text-2xl font-bold">{{ formatCurrency(totalRevenue) }}</div>
+            <div class="text-sm text-muted-foreground">Revenue</div>
+          </CardContent>
+        </Card>
+      </div>
+      <!-- Tab Navigation -->
+      <div class="w-full sticky top-0 z-10 bg-background border-b border-muted/40">
+        <div class="flex overflow-x-auto no-scrollbar gap-2 px-1 py-2">
+          <button
+            v-for="tab in tabs"
+            :key="tab.value"
+            @click="activeTab = tab.value"
+            class="flex flex-col items-center min-w-[80px] px-3 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+            :class="activeTab === tab.value ? 'bg-primary text-primary-foreground shadow' : 'bg-muted text-muted-foreground'"
+            style="border: none; outline: none;"
+            type="button"
           >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger 
-            value="members" 
-            class="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300"
-          >
-            Members
-          </TabsTrigger>
-          <TabsTrigger 
-            value="investments" 
-            class="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300"
-          >
-            Investments
-          </TabsTrigger>
-        </TabsList>
+            <component :is="tab.icon" class="h-5 w-5 mb-1" />
+            <span class="truncate">{{ tab.label }}</span>
+          </button>
+        </div>
+      </div>
 
-        <!-- Overview Tab -->
-        <TabsContent value="overview" class="space-y-6 pt-6">
+      <div class="pt-4">
+        <div v-if="activeTab === 'overview'">
+          <!-- Overview Tab Content -->
           <!-- Key Metrics Cards -->
           <div class="grid grid-cols-2 gap-4">
-            <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <Card>
               <CardHeader class="pb-3">
                 <div class="flex items-center justify-between">
-                  <CardTitle class="text-sm font-medium text-gray-600">Total Investments</CardTitle>
-                  <Building2 class="h-5 w-5 text-blue-600" />
+                  <CardTitle class="text-sm font-medium">Total Investments</CardTitle>
+                  <Building2 class="h-5 w-5 text-primary" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalInvestments) }}</div>
+                <div class="text-2xl font-bold">{{ formatCurrency(totalInvestments) }}</div>
                 <div class="flex items-center mt-2 text-sm text-green-600">
                   <ArrowUpRight class="h-4 w-4 mr-1" />
                   <span>+12.5%</span>
@@ -202,15 +242,15 @@ onMounted(() => {
               </CardContent>
             </Card>
             
-            <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <Card>
               <CardHeader class="pb-3">
                 <div class="flex items-center justify-between">
-                  <CardTitle class="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
+                  <CardTitle class="text-sm font-medium">Total Revenue</CardTitle>
                   <DollarSign class="h-5 w-5 text-green-600" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalRevenue) }}</div>
+                <div class="text-2xl font-bold">{{ formatCurrency(totalRevenue) }}</div>
                 <div class="flex items-center mt-2 text-sm text-green-600">
                   <ArrowUpRight class="h-4 w-4 mr-1" />
                   <span>+8.3%</span>
@@ -218,10 +258,10 @@ onMounted(() => {
               </CardContent>
             </Card>
             
-            <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <Card>
               <CardHeader class="pb-3">
                 <div class="flex items-center justify-between">
-                  <CardTitle class="text-sm font-medium text-gray-600">Total Profit</CardTitle>
+                  <CardTitle class="text-sm font-medium">Total Profit</CardTitle>
                   <Target class="h-5 w-5" :class="totalProfit >= 0 ? 'text-green-600' : 'text-red-600'" />
                 </div>
               </CardHeader>
@@ -236,15 +276,15 @@ onMounted(() => {
               </CardContent>
             </Card>
             
-            <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <Card>
               <CardHeader class="pb-3">
                 <div class="flex items-center justify-between">
-                  <CardTitle class="text-sm font-medium text-gray-600">ROI</CardTitle>
-                  <TrendingUp class="h-5 w-5 text-purple-600" />
+                  <CardTitle class="text-sm font-medium">ROI</CardTitle>
+                  <TrendingUp class="h-5 w-5 text-primary" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold text-gray-900">
+                <div class="text-2xl font-bold">
                   {{ totalInvestments > 0 ? ((totalProfit / totalInvestments) * 100).toFixed(1) : '0' }}%
                 </div>
                 <div class="flex items-center mt-2 text-sm text-green-600">
@@ -256,27 +296,24 @@ onMounted(() => {
           </div>
 
           <!-- Profit Distribution -->
-          <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle class="flex items-center gap-3 text-xl font-bold text-gray-900">
-                <div class="p-2 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg">
-                  <TrendingUp class="h-5 w-5 text-white" />
-                </div>
+          <Card>
+            <CardHeader class="mb-2">
+              <CardTitle class="flex items-center gap-2">
+                <TrendingUp class="h-5 w-5" />
                 Profit Distribution
               </CardTitle>
-              <CardDescription class="text-gray-600">How profits are distributed among team members</CardDescription>
+              <CardDescription>How profits are distributed among team members</CardDescription>
             </CardHeader>
             <CardContent class="space-y-4">
               <div
                 v-for="(memberProfit, index) in memberProfits"
                 :key="memberProfit.user.id"
-                class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300"
-                :style="{ animationDelay: `${index * 100}ms` }"
+                class="flex items-center justify-between p-4 rounded-lg border bg-muted/50"
               >
                 <div class="flex-1 min-w-0">
-                  <div class="font-semibold text-gray-900 truncate">{{ memberProfit.user.name }}</div>
-                  <div class="text-sm text-gray-500 flex items-center mt-1">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                  <div class="font-semibold truncate">{{ memberProfit.user.name }}</div>
+                  <div class="text-sm text-muted-foreground flex items-center mt-1">
+                    <div class="w-2 h-2 bg-primary rounded-full mr-2"></div>
                     {{ memberProfit.ownership_percentage }}% ownership
                   </div>
                 </div>
@@ -284,57 +321,288 @@ onMounted(() => {
                   <div class="font-bold text-lg" :class="memberProfit.profit_share >= 0 ? 'text-green-600' : 'text-red-600'">
                     {{ formatCurrency(memberProfit.profit_share) }}
                   </div>
-                  <div class="text-sm text-gray-500">
+                  <div class="text-sm text-muted-foreground">
                     {{ ((memberProfit.profit_share / totalProfit) * 100).toFixed(1) }}% of total
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <!-- Members Tab -->
-        <TabsContent value="members" class="space-y-6 pt-6">
-          <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
+        </div>
+        <div v-else-if="activeTab === 'batches'">
+          <!-- Batches Tab Content -->
+          <Card>
+            <CardHeader class="mb-2">
               <div class="flex items-center justify-between">
                 <div>
-                  <CardTitle class="flex items-center gap-3 text-xl font-bold text-gray-900">
-                    <div class="p-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg">
-                      <Users class="h-5 w-5 text-white" />
+                  <CardTitle class="flex items-center gap-2">
+                    <Package class="h-5 w-5" />
+                    Product Batches
+                  </CardTitle>
+                  <CardDescription>Manage your product inventory and batches</CardDescription>
+                </div>
+                <Link :href="route('businesses.product-batches.create', business.id)" as="button">
+                  <Button size="sm">
+                    <Plus class="h-4 w-4 mr-2" />
+                    Create Batch
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div v-if="!business.product_batches || business.product_batches.length === 0" class="text-center py-12 text-muted-foreground">
+                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-muted mx-auto mb-6">
+                  <Package class="h-8 w-8" />
+                </div>
+                <h3 class="text-lg font-semibold mb-2">No product batches yet</h3>
+                <p class="text-muted-foreground mb-4">Create your first product batch to start tracking inventory and costs.</p>
+                <Link :href="route('businesses.product-batches.create', business.id)" as="button">
+                  <Button>
+                    <Plus class="h-4 w-4 mr-2" />
+                    Create First Batch
+                  </Button>
+                </Link>
+              </div>
+              
+              <div v-else class="space-y-4">
+                <div
+                  v-for="batch in business.product_batches"
+                  :key="batch.id"
+                  class="p-4 rounded-lg border bg-muted/50"
+                >
+                  <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold">{{ batch.name }}</h4>
+                    <Badge :variant="batch.status === 'completed' ? 'default' : batch.status === 'cancelled' ? 'destructive' : 'secondary'">
+                      {{ batch.status }}
+                    </Badge>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                    <div>
+                      <p class="text-muted-foreground">Quantity</p>
+                      <p class="font-medium">{{ batch.remaining_quantity }} / {{ batch.total_quantity }}</p>
                     </div>
+                    <div>
+                      <p class="text-muted-foreground">Revenue</p>
+                      <p class="font-medium">{{ formatCurrency(batch.total_revenue) }}</p>
+                    </div>
+                    <div>
+                      <p class="text-muted-foreground">Profit</p>
+                      <p class="font-medium" :class="batch.total_profit >= 0 ? 'text-green-600' : 'text-red-600'">
+                        {{ formatCurrency(batch.total_profit) }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-muted-foreground">Cost</p>
+                      <p class="font-medium">{{ formatCurrency(batch.total_cost) }}</p>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs text-muted-foreground">
+                      Purchased: {{ formatDate(batch.purchase_date) }}
+                    </div>
+                    <Link :href="route('businesses.product-batches.show', [business.id, batch.id])" as="button">
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <!-- FAB for Batches -->
+          <div class="fixed bottom-24 right-6 z-50" v-if="activeTab === 'batches'">
+            <Button 
+              class="rounded-full h-16 w-16 shadow-lg bg-primary text-white"
+              :href="route('businesses.product-batches.create', business.id)"
+              as="a"
+              title="Add Batch"
+            >
+              <Plus class="h-7 w-7" />
+            </Button>
+          </div>
+        </div>
+
+        <div v-else-if="activeTab === 'investments'">
+          <!-- Investments Tab Content -->
+          <Card>
+            <CardHeader class="mb-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <CardTitle class="flex items-center gap-2">
+                    <DollarSign class="h-5 w-5" />
+                    Investments
+                  </CardTitle>
+                  <CardDescription>Track and add investments to your business or batches</CardDescription>
+                </div>
+                <Link :href="route('businesses.investments.create', business.id)" as="button">
+                  <Button size="sm">
+                    <Plus class="h-4 w-4 mr-2" />
+                    Add Investment
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div v-if="!business.investments || business.investments.length === 0" class="text-center py-12 text-muted-foreground">
+                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-muted mx-auto mb-6">
+                  <DollarSign class="h-8 w-8" />
+                </div>
+                <h3 class="text-lg font-semibold mb-2">No investments yet</h3>
+                <p class="text-muted-foreground mb-4">Add your first investment to start tracking capital and shares.</p>
+                <Link :href="route('businesses.investments.create', business.id)" as="button">
+                  <Button>
+                    <Plus class="h-4 w-4 mr-2" />
+                    Add First Investment
+                  </Button>
+                </Link>
+              </div>
+              <div v-else class="space-y-4">
+                <div
+                  v-for="investment in business.investments"
+                  :key="investment.id"
+                  class="p-4 rounded-lg border bg-muted/50"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <div>
+                      <div class="font-semibold">{{ investment.user.name }}</div>
+                      <div class="text-xs text-muted-foreground">{{ formatDate(investment.invested_at) }}</div>
+                    </div>
+                    <Badge variant="secondary">{{ investment.share_percentage }}%</Badge>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm">Amount</div>
+                    <div class="font-bold">{{ formatCurrency(investment.amount) }}</div>
+                  </div>
+                  <div v-if="investment.product_batch" class="text-xs text-muted-foreground mt-1">
+                    Batch: {{ investment.product_batch.name }}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <!-- FAB for Investments -->
+          <div class="fixed bottom-24 right-6 z-50" v-if="activeTab === 'investments'">
+            <Button 
+              class="rounded-full h-16 w-16 shadow-lg bg-green-600 text-white"
+              :href="route('businesses.investments.create', business.id)"
+              as="a"
+              title="Add Investment"
+            >
+              <Plus class="h-7 w-7" />
+            </Button>
+          </div>
+        </div>
+
+        <div v-else-if="activeTab === 'sales'">
+          <!-- Sales Tab Content -->
+          <Card>
+            <CardHeader class="mb-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <CardTitle class="flex items-center gap-2">
+                    <TrendingUp class="h-5 w-5" />
+                    Sales
+                  </CardTitle>
+                  <CardDescription>Record and view sales for your business</CardDescription>
+                </div>
+                <Link :href="route('businesses.sales.create', business.id)" as="button">
+                  <Button size="sm">
+                    <Plus class="h-4 w-4 mr-2" />
+                    Record Sale
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div v-if="!business.sales || business.sales.length === 0" class="text-center py-12 text-muted-foreground">
+                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-muted mx-auto mb-6">
+                  <TrendingUp class="h-8 w-8" />
+                </div>
+                <h3 class="text-lg font-semibold mb-2">No sales yet</h3>
+                <p class="text-muted-foreground mb-4">Record your first sale to start tracking revenue and performance.</p>
+                <Link :href="route('businesses.sales.create', business.id)" as="button">
+                  <Button>
+                    <Plus class="h-4 w-4 mr-2" />
+                    Record First Sale
+                  </Button>
+                </Link>
+              </div>
+              <div v-else class="space-y-4">
+                <div
+                  v-for="sale in business.sales"
+                  :key="sale.id"
+                  class="p-4 rounded-lg border bg-muted/50"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <div>
+                      <div class="font-semibold">Batch: {{ sale.product_batch.name }}</div>
+                      <div class="text-xs text-muted-foreground">{{ formatDateTime(sale.sold_at) }}</div>
+                    </div>
+                    <Badge variant="secondary">{{ sale.quantity }} sold</Badge>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm">Sale Price</div>
+                    <div class="font-bold">{{ formatCurrency(sale.sale_price) }}</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <!-- FAB for Sales -->
+          <div class="fixed bottom-24 right-6 z-50" v-if="activeTab === 'sales'">
+            <Button 
+              class="rounded-full h-16 w-16 shadow-lg bg-orange-600 text-white"
+              :href="route('businesses.sales.create', business.id)"
+              as="a"
+              title="Record Sale"
+            >
+              <Plus class="h-7 w-7" />
+            </Button>
+          </div>
+        </div>
+
+        <div v-else-if="activeTab === 'members'">
+          <!-- Members Tab Content -->
+          <Card>
+            <CardHeader class="mb-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <CardTitle class="flex items-center gap-2">
+                    <Users class="h-5 w-5" />
                     Team Members
                   </CardTitle>
-                  <CardDescription class="text-gray-600">Manage your business team and ownership</CardDescription>
+                  <CardDescription>Manage your business team and ownership</CardDescription>
                 </div>
                 <Sheet v-model:open="showInviteForm">
                   <SheetTrigger as-child>
-                    <Button v-if="isOwner" size="sm" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+                    <Button v-if="isOwner" size="sm">
                       <UserPlus class="h-4 w-4 mr-2" />
                       Invite
                     </Button>
                   </SheetTrigger>
-                  <SheetContent class="bg-white/95 backdrop-blur-md">
+                  <SheetContent>
                     <SheetHeader>
-                      <SheetTitle class="text-2xl font-bold text-gray-900">Invite New Member</SheetTitle>
-                      <SheetDescription class="text-gray-600">
+                      <SheetTitle>Invite New Member</SheetTitle>
+                      <SheetDescription>
                         Send an invitation to join your business. They'll receive an email with instructions.
                       </SheetDescription>
                     </SheetHeader>
                     <form @submit.prevent="inviteMember" class="space-y-6 mt-8">
-                      <div class="space-y-3">
-                        <Label for="email" class="text-sm font-medium text-gray-700">Email address</Label>
+                      <div class="grid gap-2">
+                        <Label for="email">Email address</Label>
                         <Input
                           id="email"
                           v-model="inviteForm.email"
                           type="email"
                           placeholder="member@example.com"
-                          class="bg-white/50 backdrop-blur-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
-                      <div class="space-y-3">
-                        <Label for="ownership_percentage" class="text-sm font-medium text-gray-700">Ownership Percentage</Label>
+                      <div class="grid gap-2">
+                        <Label for="ownership_percentage">Ownership Percentage</Label>
                         <Input
                           id="ownership_percentage"
                           v-model="inviteForm.ownership_percentage"
@@ -343,12 +611,11 @@ onMounted(() => {
                           min="0"
                           max="100"
                           placeholder="25.00"
-                          class="bg-white/50 backdrop-blur-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                           required
                         />
                       </div>
                       <SheetFooter>
-                        <Button type="submit" :disabled="inviteForm.processing" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                        <Button type="submit" :disabled="inviteForm.processing">
                           Send Invitation
                         </Button>
                       </SheetFooter>
@@ -358,98 +625,81 @@ onMounted(() => {
               </div>
             </CardHeader>
             <CardContent class="space-y-4">
-              <div
-                v-for="(member, index) in business.members"
-                :key="member.id"
-                class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300"
-                :style="{ animationDelay: `${index * 100}ms` }"
-              >
-                <div class="flex-1 min-w-0">
-                  <div class="font-semibold text-gray-900 truncate">{{ member.user.name }}</div>
-                  <div class="text-sm text-gray-500 flex items-center mt-1">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    {{ member.ownership_percentage }}% ownership
+              <div v-if="!business.members || business.members.length === 0" class="text-center py-12 text-muted-foreground">
+                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-muted mx-auto mb-6">
+                  <Users class="h-8 w-8" />
+                </div>
+                <h3 class="text-lg font-semibold mb-2">No team members yet</h3>
+                <p class="text-muted-foreground mb-4">Invite your first team member to start collaborating and sharing ownership.</p>
+                <Button v-if="isOwner" @click="showInviteForm = true">
+                  <UserPlus class="h-4 w-4 mr-2" />
+                  Invite First Member
+                </Button>
+              </div>
+              <div v-else>
+                <div
+                  v-for="(member, index) in business.members"
+                  :key="member.id"
+                  class="flex items-center justify-between p-4 rounded-lg border bg-muted/50"
+                >
+                  <div class="flex-1 min-w-0">
+                    <div class="font-semibold truncate">{{ member.user.name }}</div>
+                    <div class="text-sm text-muted-foreground flex items-center mt-1">
+                      <div class="w-2 h-2 bg-primary rounded-full mr-2"></div>
+                      {{ member.ownership_percentage }}% ownership
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-3 ml-4">
+                    <Badge v-if="member.user_id === business.created_by" variant="secondary">
+                      Owner
+                    </Badge>
+                    <Dialog v-model:open="showRemoveDialog">
+                      <DialogTrigger as-child>
+                        <Button
+                          v-if="isOwner && member.user_id !== business.created_by"
+                          variant="ghost"
+                          size="sm"
+                          @click="removeMember(member)"
+                          class="text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Remove Member</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to remove {{ memberToRemove?.user.name }} from this business? 
+                            This action cannot be undone.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline" @click="showRemoveDialog = false">
+                            Cancel
+                          </Button>
+                          <Button variant="destructive" @click="confirmRemoveMember">
+                            Remove Member
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
-                <div class="flex items-center space-x-3 ml-4">
-                  <Badge v-if="member.user_id === business.created_by" variant="secondary" class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
-                    Owner
-                  </Badge>
-                  <Dialog v-model:open="showRemoveDialog">
-                    <DialogTrigger as-child>
-                      <Button
-                        v-if="isOwner && member.user_id !== business.created_by"
-                        variant="ghost"
-                        size="sm"
-                        @click="removeMember(member)"
-                        class="text-red-500 hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent class="bg-white/95 backdrop-blur-md">
-                      <DialogHeader>
-                        <DialogTitle class="text-2xl font-bold text-gray-900">Remove Member</DialogTitle>
-                        <DialogDescription class="text-gray-600">
-                          Are you sure you want to remove {{ memberToRemove?.user.name }} from this business? 
-                          This action cannot be undone.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        <Button variant="outline" @click="showRemoveDialog = false" class="border-gray-200 text-gray-700">
-                          Cancel
-                        </Button>
-                        <Button variant="destructive" @click="confirmRemoveMember" class="bg-red-600 hover:bg-red-700">
-                          Remove Member
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <!-- Investments Tab -->
-        <TabsContent value="investments" class="space-y-6 pt-6">
-          <Card class="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle class="flex items-center gap-3 text-xl font-bold text-gray-900">
-                <div class="p-2 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg">
-                  <PoundSterling class="h-5 w-5 text-white" />
-                </div>
-                Investment History
-              </CardTitle>
-              <CardDescription class="text-gray-600">Track all investments made in this business</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div class="text-center py-12 text-gray-500">
-                <div class="p-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                  <PoundSterling class="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Investment tracking coming soon</h3>
-                <p class="text-gray-500">We're working on bringing you detailed investment tracking and analytics.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-
-    <!-- Floating Action Button -->
-    <div class="fixed bottom-24 right-6 z-50">
-      <Sheet v-model:open="showInviteForm">
-        <SheetTrigger as-child>
-          <Button 
-            v-if="isOwner" 
-            size="lg" 
-            class="rounded-full h-16 w-16 shadow-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white hover:scale-110 transition-all duration-300"
-          >
-            <Plus class="h-7 w-7" />
-          </Button>
-        </SheetTrigger>
-      </Sheet>
+          <!-- FAB for Members -->
+          <div class="fixed bottom-24 right-6 z-50" v-if="activeTab === 'members' && isOwner">
+            <Button 
+              class="rounded-full h-16 w-16 shadow-lg bg-blue-600 text-white"
+              @click="showInviteForm = true"
+              title="Invite Member"
+            >
+              <Plus class="h-7 w-7" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   </AppMobileLayout>
 </template>
@@ -507,4 +757,7 @@ onMounted(() => {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style> 

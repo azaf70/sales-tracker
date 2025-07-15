@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import AppMobileLayout from '@/layouts/app/AppMobileLayout.vue'
+import AppMobileLayout from '../layouts/app/AppMobileLayout.vue'
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -19,7 +19,8 @@ import {
   Activity,
   BarChart3,
   Calendar,
-  Clock
+  Clock,
+  Package
 } from 'lucide-vue-next'
 
 const isLoaded = ref(false)
@@ -74,11 +75,11 @@ const recentActivities = [
   },
   {
     id: 3,
-    type: 'member',
-    title: 'New team member',
-    description: 'Sarah Johnson joined Marketing Pro',
+    type: 'batch',
+    title: 'Product batch created',
+    description: 'New batch "Electronics 2024" added',
     time: '3 hours ago',
-    icon: Users,
+    icon: Package,
   },
   {
     id: 4,
@@ -92,16 +93,22 @@ const recentActivities = [
 
 const quickActions = [
   {
-    title: 'Record Sale',
-    description: 'Add a new sale transaction',
-    href: '/sales/create',
-    icon: TrendingUp,
+    title: 'Create Business',
+    description: 'Start a new family business',
+    href: '/businesses/create',
+    icon: Building2,
   },
   {
-    title: 'Add Investment',
-    description: 'Track a new investment',
-    href: '/investments/create',
-    icon: DollarSign,
+    title: 'View Businesses',
+    description: 'Manage your businesses',
+    href: '/businesses',
+    icon: Building2,
+  },
+  {
+    title: 'Dashboard',
+    description: 'View your business overview',
+    href: '/dashboard',
+    icon: BarChart3,
   },
 ]
 </script>
@@ -114,7 +121,7 @@ const quickActions = [
         <CardContent class="p-4">
           <div class="text-center">
             <div class="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-              <Activity class="h-3 w-8" />
+              <Activity class="h-8 w-8" />
             </div>
             <h1 class="text-xl font-bold mb-2">Welcome back! 👋</h1>
             <p class="text-muted-foreground text-sm leading-relaxed">
